@@ -1,3 +1,6 @@
+import numpy as np
+from sklearn.neighbors import NearestNeighbors
+
 def get_neighbourhood_matrix(D, p, k=3):
     # compute matrix N_p of shape k x d
     nbrs = NearestNeighbors(
