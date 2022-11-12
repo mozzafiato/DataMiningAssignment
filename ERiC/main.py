@@ -8,9 +8,12 @@ from lib import *
 ###### MAIN ############
 
 D = np.array([[-1, -1], [-2, -1], [-3, -2], [1, 1], [2, 1], [3, 2]])
-info_point, partitions = make_partitions(D)
+
+
+info_point, partitions = make_partitions(D, 3)
 print("Info per point:")
 print(info_point)
 print("Partitions:")
-print(partitions)
+print(*[len(p) for p in partitions.values()])
+
 

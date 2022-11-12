@@ -1,5 +1,7 @@
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
+from sklearn.cluster import DBSCAN
+
 
 def get_neighbourhood_matrix(D, p, k=3):
     # compute matrix N_p of shape k x d
@@ -8,6 +10,9 @@ def get_neighbourhood_matrix(D, p, k=3):
     _, indices = nbrs.kneighbors([p])
     return D[indices[0]]
 
+
+def get_weak_eigenvectors_matrix(meta):
+    pass
 
 def covariance(X):
     # covariance matrix of shape dxd
@@ -51,19 +56,22 @@ def correlation_dimensionality(D, p, alpha=0.85):
     return l, eigen_values, eigen_vectors
 
 
-def make_partitions(D):
+def make_partitions(D, k=1000):
     point_info = dict()  # useful for later
     partitions = dict()  # store indices of points per partition
 
     # initialize partitions
     for i in range(D.shape[1]):
+        point_info[i+1] = dict()
         partitions[i+1] = []
 
     # for every point, compute necessary values and store them
     for i, p in enumerate(D):
-        l, e_list, v_list = correlation_dimensionality(D, p)
-        point_info[i] = {
-            'lambda': l,  # integer
+        l, e_list, v_list = correlation_dimensionality(D, p, k)
+        # CHANGE since 2 equal points have the same e and v list, p can be used as key
+        # CHANGE encode dimensionality in nested index -> saves memory in dbscan alg.
+        point_info[l][p] = {
+            # 'lambda': l,  # integer
             'E': e_list,  # 1D array
             'V': v_list   # 2D array
         }
@@ -73,17 +81,60 @@ def make_partitions(D):
 
     return point_info, partitions
 
-def gaussuian_filter(kernel_size, sigma=1, muu=0):
- 
-    # Initializing value of x,y as grid of kernel size
-    # in the range of kernel size
- 
-    x, y = np.meshgrid(np.linspace(-1, 1, kernel_size),
-                       np.linspace(-1, 1, kernel_size))
-    dst = np.sqrt(x**2+y**2)
- 
-    # lower normal part of gaussian
-    normal = 1/(2, 0 * np.pi * sigma**2)
- 
-    # Calculating Gaussian filter
-    gauss = np.exp(-((dst-muu)**2 / (2.0 * sigma**2))) * normal
+def is_approximate_linear_dependant(V_p, VEV_q, delta_affine):
+
+    deltas = np.sqrt(V_p.T @ VEV_q.T @ V_p)
+
+    return np.all(deltas < delta_affine)
+
+def affine_distance(p, q, VEV_q):
+    return np.sqrt((p-q).T @ VEV_q @ (p-q))
+
+def symmetric_correlation_distance(
+    x, y, delta_affine, delta_dist,
+    lx, point_info_lx,
+    ly=None, point_info_ly=None # distances of different dimensionalities will be useful later
+):
+
+    d = x.size
+
+    if point_info_ly is None:
+        point_info_ly = point_info_lx
+
+    E_hat_x = np.eye(d)
+    E_hat_x[0:lx, 0:lx] = 0
+    if ly is not None:
+        E_hat_y = np.eye(d)
+        E_hat_y[0:ly, 0:ly] = 0
+    else:
+        E_hat_y = E_hat_x
+
+    V_x = point_info_lx[x]['V']
+    V_y = point_info_ly[y]['V']
+
+    VEV_x = V_x @ E_hat_x @ V_x.T
+    VEV_y = V_y @ E_hat_y @ V_y.T
+
+    if (is_approximate_linear_dependant(V_x, VEV_y, delta_affine) and
+            is_approximate_linear_dependant(V_y, VEV_x, delta_affine) and
+            affine_distance(x, y, VEV_y) < delta_dist and
+            affine_distance(y, x, VEV_x) < delta_dist):
+        return 0
+    else:
+        return 1
+
+def cluster_partitions(
+    partitions, point_info,
+    delta_affine, delta_dist, min_samples
+):
+    models = []
+    for l, p in partitions.items():
+        metric_params = (
+            delta_affine, delta_dist,
+            l, point_info[l],
+        )
+        model = DBSCAN(
+            0, min_samples, symmetric_correlation_distance, metric_params
+        ).fit(p)
+
+        models.append(model)
