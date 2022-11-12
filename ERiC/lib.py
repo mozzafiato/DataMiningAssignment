@@ -83,7 +83,7 @@ def make_partitions(D, k=1000):
 
 def is_approximate_linear_dependant(V_p, VEV_q, delta_affine):
 
-    deltas = np.sqrt(V_p.T @ VEV_q.T @ V_p)
+    deltas = np.sqrt(V_p @ VEV_q @ V_p.T)
 
     return np.all(deltas < delta_affine)
 
