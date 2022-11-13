@@ -57,23 +57,35 @@ def correlation_dimensionality(D, p, alpha=0.85):
 
 
 def make_partitions(D, k=1000):
+
     point_info = dict()  # useful for later
     partitions = dict()  # store indices of points per partition
+    E_hats = []          # diagonal weak eigenvector filters
 
-    # initialize partitions
+
+    # initialize partitions, meta data and eigenvector filter
     for i in range(D.shape[1]):
         point_info[i+1] = dict()
         partitions[i+1] = []
+        # weak eigenvector filter used to compute 
+        # Vq · Êq · VqT
+        E_hat = np.eye(D.shape[1])
+        E_hat[0:i+1, 0:i+1] = 0
+        E_hats.append(E_hat)
+        
 
     # for every point, compute necessary values and store them
     for i, p in enumerate(D):
         l, e_list, v_list = correlation_dimensionality(D, p, k)
         # CHANGE since 2 equal points have the same e and v list, p can be used as key
         # CHANGE encode dimensionality in nested index -> saves memory in dbscan alg.
-        point_info[l][p] = {
+        # caclulate V * E^ * V.T since this value gets used a lot
+        VEV = v_list @ E_hats[l-1] @ v_list.T 
+        point_info[l][p.data.tobytes()] = {
             # 'lambda': l,  # integer
             'E': e_list,  # 1D array
-            'V': v_list   # 2D array
+            'V': v_list,  # 2D array
+            'VEV': VEV    # 2D array
         }
 
         # add index of point to corresponding partition
@@ -82,59 +94,95 @@ def make_partitions(D, k=1000):
     return point_info, partitions
 
 def is_approximate_linear_dependant(V_p, VEV_q, delta_affine):
+    deltas = np.empty(V_p.shape[1])
+    # iterate columns
+    for i, v_p in enumerate(V_p.T):
+        deltas[i] = v_p @ VEV_q @ v_p.T
 
-    deltas = np.sqrt(V_p @ VEV_q @ V_p.T)
-
+    deltas = np.sqrt(deltas)
+    # check sqrt(vi.T · Vq · Êq · Vq.T · vi ≤ Δ) for all vi
     return np.all(deltas < delta_affine)
 
 def affine_distance(p, q, VEV_q):
+    # compute sqrt((p − q)T · Vq · Êq · Vq.T · (p − q))
     return np.sqrt((p-q).T @ VEV_q @ (p-q))
 
 def symmetric_correlation_distance(
     x, y, delta_affine, delta_dist,
-    lx, point_info_lx,
-    ly=None, point_info_ly=None # distances of different dimensionalities will be useful later
+    point_info_lx, point_info_ly=None # distances of different dimensionalities will be useful later
 ):
-
-    d = x.size
-
+    # point info dictionaries for dimensionalities lx and ly
+    # check if points have same lambda dimensionality
     if point_info_ly is None:
         point_info_ly = point_info_lx
 
-    E_hat_x = np.eye(d)
-    E_hat_x[0:lx, 0:lx] = 0
-    if ly is not None:
-        E_hat_y = np.eye(d)
-        E_hat_y[0:ly, 0:ly] = 0
-    else:
-        E_hat_y = E_hat_x
+    # get point info data by hashing point
+    x_info = point_info_lx[x.data.tobytes()]
+    y_info = point_info_ly[y.data.tobytes()]
 
-    V_x = point_info_lx[x]['V']
-    V_y = point_info_ly[y]['V']
+    # retrieve values to compute similarity
+    V_x = x_info['V']
+    V_y = y_info['V']
+    VEV_x = x_info['VEV']
+    VEV_y = y_info['VEV']
 
-    VEV_x = V_x @ E_hat_x @ V_x.T
-    VEV_y = V_y @ E_hat_y @ V_y.T
+    # the condition for 0 distance is:
+    # ***
+    # SPAN(p) ⊆Δaff SPAN(q) ∧ DISTaff (p, q) ≤ δ ***AND***
+    # SPAN(q) ⊆Δaff SPAN(p) ∧ DISTaff (q, p) ≤ δ
+    # ***
+    # since the maximum value is chosen 
 
     if (is_approximate_linear_dependant(V_x, VEV_y, delta_affine) and
-            is_approximate_linear_dependant(V_y, VEV_x, delta_affine) and
             affine_distance(x, y, VEV_y) < delta_dist and
+            is_approximate_linear_dependant(V_y, VEV_x, delta_affine) and
             affine_distance(y, x, VEV_x) < delta_dist):
         return 0
     else:
         return 1
 
 def cluster_partitions(
-    partitions, point_info,
+    D, partitions, point_info,
     delta_affine, delta_dist, min_samples
 ):
-    models = []
-    for l, p in partitions.items():
-        metric_params = (
-            delta_affine, delta_dist,
-            l, point_info[l],
-        )
-        model = DBSCAN(
-            0, min_samples, symmetric_correlation_distance, metric_params
-        ).fit(p)
+    # initialize output structures
+    models = [None for _ in partitions] # maybe useful later?
+    clusters = {i: [] for i in partitions}
 
-        models.append(model)
+    for l, p in partitions.items():
+        # check if partition contains indices
+        if p:
+            # metric params contains the point info dictionary
+            # of dimesnionality lamda=l
+            metric_params = {
+                'delta_affine': delta_affine,
+                'delta_dist': delta_dist,
+                'point_info_lx': point_info[l]
+            }
+            # perform DBSCAN
+            # eps is the closest value to zero,
+            # since we have a binary similarity function
+            model = DBSCAN(
+                eps=np.nextafter(0, 1),
+                min_samples=min_samples,
+                metric=symmetric_correlation_distance,
+                metric_params=metric_params
+            ).fit(D[p])
+
+
+        models[l] = model
+        # get indices from model
+        label = 0
+        # iterate labels
+        while True:
+            # get indices of partition where
+            # points are clustered the current label
+            cluster = np.transpose((model.labels_ == label).nonzero())
+            if cluster.size != 0:
+                clusters[l].append(cluster)
+                label += 1
+            else:
+                # stop if model has no more labels
+                break
+
+        return models, clusters
