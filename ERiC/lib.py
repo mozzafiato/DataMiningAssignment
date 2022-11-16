@@ -90,14 +90,13 @@ def make_partitions(D, k):
 
 
 def is_approximate_linear_dependant(V_p, VEV_q, delta_affine):
-    deltas = np.empty(V_p.shape[1])
+    
     # iterate columns
     for i, v_p in enumerate(V_p.T):
-        deltas[i] = v_p @ VEV_q @ v_p.T
+        deltas_i = np.sqrt(v_p @ VEV_q @ v_p.T)
+        if deltas_i > delta_affine: return False
 
-    deltas = np.sqrt(deltas)
-    # check sqrt(vi.T · Vq · Êq · Vq.T · vi ≤ Δ) for all vi
-    return np.all(deltas < delta_affine)
+    return True
 
 
 def affine_distance(p, q, VEV_q):
