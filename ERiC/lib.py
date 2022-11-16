@@ -119,9 +119,15 @@ def symmetric_correlation_distance(
         l_y = l_x
         point_info_ly = point_info_lx
 
-    # get point info data by hashing point
-    x_info = point_info_lx[x.data.tobytes()]
-    y_info = point_info_ly[y.data.tobytes()]
+    try:
+        # get point info data by hashing point
+        x_info = point_info_lx[x.data.tobytes()]
+        y_info = point_info_ly[y.data.tobytes()]
+    except:
+        print("Error")
+        print(x)
+        print(x.data.tobytes())
+        raise ValueError
 
     # retrieve values to compute similarity
     V_x = x_info['V']
@@ -157,7 +163,7 @@ def cluster_partitions(
         # check if partition contains indices
         if p:
             # metric params contains the point info dictionary
-            # of dimesnionality lamda=l
+            # of dimensionality lamda=l
             metric_params = {
                 'delta_affine': delta_affine,
                 'delta_dist': delta_dist,
@@ -175,18 +181,21 @@ def cluster_partitions(
             ).fit(D[p])
 
             models[l] = model
-            # get indices from model
-            label = 0
-            # iterate labels
-            while True:
-                # get indices of partition where
-                # points are clustered the current label
-                cluster = np.transpose((model.labels_ == label).nonzero())
-                if cluster.size != 0:
-                    clusters[l].append(cluster)
-                    label += 1
-                else:
-                    # stop if model has no more labels
-                    break
 
-        return models, clusters
+        """
+        # get indices from model
+        label = 0
+        # iterate labels
+        while True:
+            # get indices of partition where
+            # points are clustered the current label
+            cluster = np.transpose((model.labels_ == label).nonzero())
+            if cluster.size != 0:
+                clusters[l].append(cluster)
+                label += 1
+            else:
+                # stop if model has no more labels
+                break
+        """
+
+    return models, clusters

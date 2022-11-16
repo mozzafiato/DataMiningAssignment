@@ -19,6 +19,6 @@ print("Partitions:")
 print(*[len(p) for p in partitions.values()])
 
 models, clusters = cluster_partitions(D, partitions, point_info, 1.5, .5, 2)
-print(models)
+#print(models)
 print(clusters)
 
