@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import DBSCAN
+from scipy.spatial.distance import pdist, squareform
 
 
 def get_neighbourhood_matrix(D, p, k=200):
@@ -9,10 +10,6 @@ def get_neighbourhood_matrix(D, p, k=200):
         n_neighbors=k, algorithm='brute', metric="euclidean").fit(D)
     _, indices = nbrs.kneighbors([p])
     return D[indices[0]]
-
-
-def get_weak_eigenvectors_matrix(meta):
-    pass
 
 
 def covariance(X):
@@ -170,32 +167,39 @@ def cluster_partitions(
                 'point_info_lx': point_info[l],
                 'l_x': l
             }
+
+            # pairwise distances
+            X = pdist(
+                D[p],
+                lambda x, y: symmetric_correlation_distance(x, y, **metric_params),
+            )
+            X = squareform(X)
+
             # perform DBSCAN
             # eps is the closest value to zero,
             # since we have a binary similarity function
             model = DBSCAN(
                 eps=np.nextafter(0, 1),
                 min_samples=min_samples,
-                metric=symmetric_correlation_distance,
-                metric_params=metric_params
-            ).fit(D[p])
+                metric='precomputed',
+            ).fit(X)
 
             models[l] = model
 
-        """
-        # get indices from model
-        label = 0
-        # iterate labels
-        while True:
-            # get indices of partition where
-            # points are clustered the current label
-            cluster = np.transpose((model.labels_ == label).nonzero())
-            if cluster.size != 0:
-                clusters[l].append(cluster)
-                label += 1
-            else:
-                # stop if model has no more labels
-                break
-        """
+        
+            # get indices from model
+            label = 0
+            # iterate labels
+            while True:
+                # get indices of partition where
+                # points are clustered the current label
+                cluster = np.transpose((model.labels_ == label).nonzero())
+                if cluster.size != 0:
+                    clusters[l].append(cluster)
+                    label += 1
+                else:
+                    # stop if model has no more labels
+                    break
+        
 
     return models, clusters
