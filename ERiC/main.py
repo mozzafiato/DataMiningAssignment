@@ -18,8 +18,13 @@ print("Info per point:")
 print("Partitions:")
 print(*[len(p) for p in partitions.values()])
 
-models, clusters = cluster_partitions(D, partitions, point_info, 1.5, .5, 2)
+models, clusters = cluster_partitions(D, partitions, point_info, delta_affine=1.5, delta_dist=.5, min_samples=2)
 #print(models)
-# print(clusters)
+print(clusters.keys())
 print(*[len(c) for c in clusters.values()])
+#print(clusters[2])
+cluster_info = compute_cluster_list(clusters, D)
+print(cluster_info)
+
+hierarchy = build_hierarchy(cluster_info, delta_affine=1.5, delta_dist=.5)
 
