@@ -80,7 +80,7 @@ def make_partitions(D, k, alpha=.85):
         VEV = v_list @ E_hats[l - 1] @ v_list.T
         point_info[l][p.data.tobytes()] = {
             # 'lambda': l,  # integer
-            'E': e_list,  # 1D array
+            # 'E': e_list,  # 1D array
             'V': v_list,  # 2D array
             'VEV': VEV  # 2D array
         }
