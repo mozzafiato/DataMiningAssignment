@@ -179,7 +179,7 @@ def cluster_partitions(
             # eps is the closest value to zero,
             # since we have a binary similarity function
             model = DBSCAN(
-                eps=0.00001,
+                eps=0.000001,
                 min_samples=min_samples,
                 metric='precomputed',
             ).fit(X)
@@ -214,13 +214,14 @@ def compute_cluster_list(clusters, D):
 
         if len(clusters[p]) > 0:
             for c in range(1, len(clusters[p])+1):
-                print("---cluster: ", c, "->", c_i)
                 cluster_info[c_i] = {}
                 cluster_info[c_i]['lambda'] = p
 
                 # compute centroid of cluster c in partition p
                 N_cluster = np.squeeze(D[clusters[p][c-1]])
                 cluster_info[c_i]['centroid'] = np.mean(N_cluster, axis=0)
+
+                print("---cluster: ", c, " size:", N_cluster.shape[0])
 
                 # compute matrices based on strong and weak eigenvalues
                 e_list, v_list = covariance_decomposition(N_cluster)
