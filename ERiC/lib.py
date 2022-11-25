@@ -180,7 +180,6 @@ def cluster_partitions(
             # since we have a binary similarity function
             model = DBSCAN(
                 eps=0.00001,
-                eps=0.00001,
                 min_samples=min_samples,
                 metric='precomputed',
             ).fit(X)
