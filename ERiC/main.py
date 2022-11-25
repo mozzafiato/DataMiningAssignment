@@ -19,7 +19,7 @@ print("Info per point:")
 print("Partitions:")
 print(*[len(p) for p in partitions.values()])
 
-models, clusters = cluster_partitions(D, partitions, point_info, delta_affine=delta_affine=1.5, delta_dist=delta_dist=.5, min_samples=min_samples=2)
+models, clusters = cluster_partitions(D, partitions, point_info, delta_affine=1.5, delta_dist=.5, min_samples=2)
 #print(models)
 print(clusters.keys())
 print(*[len(c) for c in clusters.values()])
