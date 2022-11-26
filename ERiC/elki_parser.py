@@ -21,7 +21,7 @@ def get_index(cluster_info, l, c_i):
     return -1
 
 
-def parse_file(lines):
+def parse_file(lines, verbose=0):
     cluster_info = {}
 
     for i, cluster in enumerate(lines.split("# Cluster:")[1:]):
@@ -30,7 +30,8 @@ def parse_file(lines):
             cluster_info[i+1] = {}
 
         name = re.findall(r"\[(.*?)]", cluster)[0]
-        print(name)
+        if verbose:
+            print(name)
         if name == "noise":
             # not sure ??
             l = 0
