@@ -5,7 +5,6 @@ import pygraphviz
 import networkx as nx
 import matplotlib.pylab as pl
 import matplotlib.pyplot as plt
-import matplotlib as mpl
 from networkx.drawing.nx_agraph import graphviz_layout
 import random
 
@@ -22,7 +21,7 @@ def get_index(cluster_info, l, c_i):
     return -1
 
 
-def parse_file(lines):
+def parse_file(lines, verbose=0):
     cluster_info = {}
 
     for i, cluster in enumerate(lines.split("# Cluster:")[1:]):
@@ -31,7 +30,8 @@ def parse_file(lines):
             cluster_info[i+1] = {}
 
         name = re.findall(r"\[(.*?)]", cluster)[0]
-        print(name)
+        if verbose:
+            print(name)
         if name == "noise":
             # not sure ??
             l = 0
@@ -72,12 +72,6 @@ def parse_file(lines):
     return cluster_info
 
 
-def colorFader(mix=0, c1="blue", c2="red"): #fade (linear interpolate) from color c1 (at mix=0) to c2 (mix=1)
-    c1 = np.array(mpl.colors.to_rgb(c1))
-    c2 = np.array(mpl.colors.to_rgb(c2))
-    return mpl.colors.to_hex((1-mix)*c1 + mix*c2)
-
-
 def draw_graph(cluster_info):
 
     G = nx.DiGraph()
@@ -92,24 +86,24 @@ def draw_graph(cluster_info):
     for i in cluster_info.keys():
 
         name = str(cluster_info[i]['lambda']) + "_" + str(cluster_info[i]["index"])
-
+        G.add_node(name, level=cluster_info[i]['lambda'])
         added += 1
         print(added)
         pos[name] = [cluster_info[i]['lambda'], cluster_info[i]["index"]]
         print("Node:", name, " level:", cluster_info[i]['lambda'])
         if cluster_info[i]['lambda'] == 0:
             attr[name] = 0
-            G.add_node(name, level=0)
         else:
             attr[name] = d - cluster_info[i]['lambda']+1
-            G.add_node(name, level=(d - cluster_info[i]['lambda'] + 1))
 
         if cluster_info[i]['lambda'] == 0:
             colors.append("black")
         else:
             class_1 = np.count_nonzero(cluster_info[i]['points'] > 500)
-            percentage = class_1/len(cluster_info[i]['points'])
-            colors.append(colorFader(percentage))
+            class_2 = len(cluster_info[i]['points']) - class_1
+            if class_1 > class_2:
+                colors.append('red')
+            else: colors.append('blue')
 
     for i in cluster_info.keys():
         name = str(cluster_info[i]['lambda']) + "_" + str(cluster_info[i]["index"])
@@ -137,7 +131,7 @@ def draw_graph(cluster_info):
     lambda_max = max([cluster_info[c]['lambda'] for c in cluster_info])
     #cluster_info[noise_index]['lambda'] = lambda_max
 
-    pos = nx.random_layout(G)
+    pos = graphviz_layout(G)
     nx.set_node_attributes(G, attr, name="level")
 
     true_levels = nx.get_node_attributes(G, 'level')
