@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 from lib import *
-from sklearn.preprocessing import MinMaxScaler as Scaler
+from sklearn.preprocessing import StandardScaler as Scaler
 
 # data type important ! float 64 is needed for hashing in dbscan alg.
 #D = np.array([[-1, -1], [-2, -1], [-3, -2], [1, 1], [2, 1], [3, 2]], dtype=np.float64)
@@ -15,7 +15,7 @@ print("Samples:", len(df))
 D = df.to_numpy(dtype=np.float64)
 D = Scaler().fit_transform(D)
 
-point_info, partitions = make_partitions(D, k=120)
+point_info, partitions = make_partitions(D, k=200)
 print("Partitions:")
 print(*[len(p) for p in partitions.values()])
 
@@ -27,5 +27,5 @@ print(*[len(c) for c in clusters.values()])
 cluster_info = compute_cluster_list(clusters, D)
 #print(cluster_info)
 
-#hierarchy = build_hierarchy(cluster_info, delta_affine=1.5, delta_dist=.5)
+hierarchy = build_hierarchy(cluster_info, delta_affine=1.5, delta_dist=.5)
 

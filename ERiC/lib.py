@@ -179,7 +179,7 @@ def cluster_partitions(
             # eps is the closest value to zero,
             # since we have a binary similarity function
             model = DBSCAN(
-                eps=0.000001,
+                eps=0.0000001,
                 min_samples=min_samples,
                 metric='precomputed',
             ).fit(X)
@@ -216,6 +216,8 @@ def compute_cluster_list(clusters, D):
             for c in range(1, len(clusters[p])+1):
                 cluster_info[c_i] = {}
                 cluster_info[c_i]['lambda'] = p
+                cluster_info[c_i]['points'] = clusters[p][c-1]
+                cluster_info[c_i]['index'] = c-1
 
                 # compute centroid of cluster c in partition p
                 N_cluster = np.squeeze(D[clusters[p][c-1]])
@@ -299,7 +301,7 @@ cluster_test[6]['parents'] = [3]
 cluster_test[7] = {}
 cluster_test[7]['parents'] = [5]
 print(is_parent(1, 3, cluster_test))
-"""
+
 
 
 
@@ -378,8 +380,6 @@ def build_hierarchy(cluster_list, delta_affine, delta_dist):
 
     return cluster_list
 
-
-"""" 
 test
 
 cluster_test = {}

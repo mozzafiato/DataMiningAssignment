@@ -6,7 +6,8 @@ import numpy as np
 import pandas as pd
 from sklearn.datasets import make_blobs
 from sklearn.metrics import normalized_mutual_info_score
-from sklearn.preprocessing import MinMaxScaler as Scaler
+from sklearn.preprocessing import StandardScaler as Scaler
+import re
 
 
 DATA_FILE_NAME = "data.tsv"
@@ -14,7 +15,7 @@ DATA_FILE_NAME = "data.tsv"
 ELKI_JAR = "elki-bundle-0.7.5.jar"
 
 
-def elki_eric(X, k=200, dbscan_minpts=4, alpha=0.85, delta_dist=0.5, delta_affine=1.5):
+def elki_eric(X, k=100, dbscan_minpts=4, alpha=0.85, delta_dist=0.5, delta_affine=1.5):
     """Perform ERIC clustering implemented by ELKI package.
        The function calls jar package, which must be accessible through the
        path stated in ELKI_JAR constant.
@@ -64,13 +65,19 @@ def elki_eric(X, k=200, dbscan_minpts=4, alpha=0.85, delta_dist=0.5, delta_affin
 
     # parse output
     elki_output = output.decode("utf-8")
+    print(elki_output)
+
+    with open('elki_eric_output.txt', 'w') as f:
+        f.write(re.sub(r'\n\s*\n', '\n', elki_output, re.MULTILINE))
+
+    """
     cluster_filter = [line for line in elki_output.split('\n') if "Cluster" in line]
     for line in cluster_filter:
         print(line)
         if "size" in line:
             print("-------------")
 
-    """
+
     # initialize array of ids and labels
     Y_pred = np.array([]).reshape(0, 2)
     # for each cluster, split by regex from output
@@ -108,9 +115,9 @@ if __name__ == "__main__":
     print(y.shape)
     elki_eric(x)
 
-
     nmi = normalized_mutual_info_score(pred, y)
     print(f"NMI: {nmi:.4f}")
     pred_and_y = np.concatenate([pred[:, None], y[:, None]], axis=1)
     #np.savetxt("results.csv", pred_and_y, delimiter=",", fmt="%.1f")
     """
+
