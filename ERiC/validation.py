@@ -32,7 +32,10 @@ def validate(our_cluster_info, elki_cluster_info):
         for c in our_cluster_info.keys():
             if l == our_cluster_info[c]['lambda']:
                 print("--- cluster", our_cluster_info[c]['index'], " size:", len(our_cluster_info[c]['points']))
+                print("------ points")
                 print(sorted(our_cluster_info[c]['points']))
+                print("------ parents")
+                print(sorted(our_cluster_info[c]['parents']))
 
     print("")
     print("ELKI ERic structure")
@@ -42,7 +45,10 @@ def validate(our_cluster_info, elki_cluster_info):
             if l == elki_cluster_info[c]['lambda']:
 
                 print("--- cluster",  elki_cluster_info[c]['index'], " size:", len(elki_cluster_info[c]['points']))
+                print("------ points")
                 print(sorted(elki_cluster_info[c]['points']))
+                print("------ parents")
+                print(sorted(elki_cluster_info[c]['parents']))
 
     print("")
     # compare cluster sizes in each lambda levels
@@ -63,6 +69,8 @@ def validate(our_cluster_info, elki_cluster_info):
             else:
                 print(f"Cluster sizes or/and values were not identical for lambda={l}")
                 cluster_sizes_identical = False
+
+
 
 
     validated = equal_n_clusters and equal_lambda_amounts and cluster_sizes_identical

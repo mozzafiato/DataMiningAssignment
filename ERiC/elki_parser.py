@@ -5,8 +5,10 @@ import pygraphviz
 import networkx as nx
 import matplotlib.pylab as pl
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 from networkx.drawing.nx_agraph import graphviz_layout
 import random
+
 
 def read_file(file):
     with open(file) as f:
@@ -19,6 +21,12 @@ def get_index(cluster_info, l, c_i):
         if cluster_info[i]['lambda'] == l and cluster_info[i]['index'] == c_i:
             return i
     return -1
+
+def colorFader(mix=0, c1="blue", c2="red"):
+    # fade (linear interpolate) from color c1 (at mix=0) to c2 (mix=1)
+    c1 = np.array(mpl.colors.to_rgb(c1))
+    c2 = np.array(mpl.colors.to_rgb(c2))
+    return mpl.colors.to_hex((1-mix)*c1 + mix*c2)
 
 
 def parse_file(lines, verbose=0):
@@ -67,17 +75,14 @@ def parse_file(lines, verbose=0):
 
             for child in children_list:
                 inds = child.replace("[", "").replace("]", "").split("_")
-                #print(inds)
                 child_index = get_index(cluster_info, int(inds[0]), int(inds[1]))
                 if child_index == -1:
                     print("****")
                 if 'parents' not in cluster_info[child_index]:
                     cluster_info[child_index]['parents'] = []
-                #print("Adding parent:", i+1, " to", child_index)
                 cluster_info[child_index]['parents'].append(i+1)
 
     return cluster_info
-
 
 def draw_graph(cluster_info):
 
@@ -93,73 +98,43 @@ def draw_graph(cluster_info):
     for i in cluster_info.keys():
 
         name = str(cluster_info[i]['lambda']) + "_" + str(cluster_info[i]["index"])
-        G.add_node(name, level=cluster_info[i]['lambda'])
+
         added += 1
         print(added)
         pos[name] = [cluster_info[i]['lambda'], cluster_info[i]["index"]]
         print("Node:", name, " level:", cluster_info[i]['lambda'])
-        if cluster_info[i]['lambda'] == 0:
-            attr[name] = 0
-        else:
-            attr[name] = d - cluster_info[i]['lambda']+1
+        attr[name] = d - cluster_info[i]['lambda']+1
+        G.add_node(name, level=(d - cluster_info[i]['lambda'] + 1))
 
-        if cluster_info[i]['lambda'] == 0:
+        print(cluster_info[i]['lambda'])
+        if cluster_info[i]['lambda'] == 1:
             colors.append("black")
         else:
-            class_1 = np.count_nonzero(cluster_info[i]['points'] >= 500)
-            class_2 = len(cluster_info[i]['points']) - class_1
-            if class_1 > class_2:
-                colors.append('red')
-            else: colors.append('blue')
+            class_1 = np.count_nonzero(np.array(cluster_info[i]['points']) > 499)
+            percentage = class_1/len(cluster_info[i]['points'])
+            colors.append(colorFader(percentage))
 
     for i in cluster_info.keys():
         name = str(cluster_info[i]['lambda']) + "_" + str(cluster_info[i]["index"])
 
-        #print("Node:", name)
         for j in cluster_info[i]['parents']:
             name_parent = str(cluster_info[j]['lambda']) + "_" + str(cluster_info[j]["index"])
             G.add_edge(name_parent, name)
-            #print("Adding:", name_parent, name)
 
-    """
-    # test
-    G.add_node("2_1", level=2)
-    G.add_edge("1_0", "2_1")
-    attr["2_1"] = 2
-    G.add_node("2_2", level=2)
-    G.add_edge("1_0", "2_2")
-    attr["2_2"] = 2
-    G.add_node("3_1", level=3)
-    G.add_edge("1_0", "3_1")
-    attr["3_1"] = 1
-    G.add_edge("2_1", "3_1")
-    """
-
-    lambda_max = max([cluster_info[c]['lambda'] for c in cluster_info])
-    #cluster_info[noise_index]['lambda'] = lambda_max
-
-    pos = graphviz_layout(G)
+    pos = nx.random_layout(G)
     nx.set_node_attributes(G, attr, name="level")
 
     true_levels = nx.get_node_attributes(G, 'level')
     reposition = {node_id: np.array([pos[node_id][0], true_levels[node_id]]) for node_id in true_levels}
-    print(G.number_of_nodes())
-    print(G.number_of_edges())
-    print(added)
 
-    n = np.arange(0, lambda_max+1)
+    n = np.arange(0, d+1)
 
     for i in n:
         plt.axhline(y=i, color='gray', linewidth=0.5)
 
-    nx.draw_networkx(G, reposition, node_size=60, arrowsize=1, width=0.05, node_color=colors, with_labels=False)
+    nx.draw_networkx(G, reposition, node_size=60, arrowsize=1, width=0.1, node_color=colors, with_labels=False)
 
     plt.show()
-
-# Example
-"""text = read_file('elki/elki_output.txt')
-cluster_info = parse_file(text)
-draw_graph(cluster_info)"""
 
 
 
