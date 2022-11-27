@@ -1,10 +1,5 @@
-import pickle
-import os
-import pandas as pd
-from sklearn.preprocessing import MinMaxScaler as Scaler#StandardScaler as Scaler
 from collections import defaultdict
-from lib import *
-from elki_parser import *
+
 
 def validate(our_cluster_info, elki_cluster_info):
     
@@ -30,55 +25,47 @@ def validate(our_cluster_info, elki_cluster_info):
     print(f"The implementations{' ' if equal_lambda_amounts else ' do not '}return the same number of lambdas.") 
     print(f"No. of lambdas (our ERiC): {dict(our_lambda_amounts_dict)}")
     print(f"No. of lambdas (ELKI ERiC): {dict(elki_lambda_amounts_dict)}\n")
-    
+
+    print("Our ERiC structure:")
+    for l in our_lambda_dict.keys():
+        print("Partition ", l)
+        for c in our_cluster_info.keys():
+            if l == our_cluster_info[c]['lambda']:
+                print("--- cluster", our_cluster_info[c]['index'], " size:", len(our_cluster_info[c]['points']))
+                print(sorted(our_cluster_info[c]['points']))
+
+    print("")
+    print("ELKI ERic structure")
+    for l in elki_lambda_dict.keys():
+        print("Partition ", l)
+        for c in elki_cluster_info.keys():
+            if l == elki_cluster_info[c]['lambda']:
+
+                print("--- cluster",  elki_cluster_info[c]['index'], " size:", len(elki_cluster_info[c]['points']))
+                print(sorted(elki_cluster_info[c]['points']))
+
+    print("")
     # compare cluster sizes in each lambda levels
     cluster_sizes_identical = True
     for l in our_lambda_dict.keys():
         if l not in elki_lambda_dict.keys():
             cluster_sizes_identical = False
             print(f"{l} is not an ELKI lambda value")
-        
+
         else:
-            our_cluster_sizes = [len(p['points'][0]) for p in our_lambda_dict[l]].sort()
+            our_cluster_sizes = [len(p['points']) for p in our_lambda_dict[l]].sort()
             elki_cluster_sizes = [len(p['points']) for p in elki_lambda_dict[l]].sort()
             
             if our_cluster_sizes == elki_cluster_sizes:
                 print(f"Cluster sizes were identical for lambda={l}")
-                
+            if sorted(our_cluster_info[l]['points']) == sorted(elki_cluster_info[l]['points']):
+                print(f"Cluster values are identical for lambda={l}")
             else:
-                print(f"Cluster sizes were not identical for lambda={l}")
+                print(f"Cluster sizes or/and values were not identical for lambda={l}")
                 cluster_sizes_identical = False
-    
+
+
     validated = equal_n_clusters and equal_lambda_amounts and cluster_sizes_identical
     print(f"\nValidation result: The outputs of the algorithms are{' ' if validated else ' not '}identical.") 
 
-def load_and_validate(path_our_eric, path_elki_eric, iterations=5, k = 60, alpha = .85, delta_affine = .3, delta_dist = .3, min_samples = 2):
-
-    # loading our implementation's result
-    # clustering
-    try:
-        # reading
-        #models = pickle.load(open(os.path.join(path_our_eric, f'models_{iterations}_{k}_{alpha}_{delta_affine}_{delta_dist}_{min_samples}.p'), 'rb'))
-        #clusters = pickle.load(open(os.path.join(path_our_eric, f'clusters_{iterations}_{k}_{alpha}_{delta_affine}_{delta_dist}_{min_samples}.p'), 'rb'))
-        #cluster_info = pickle.load(open(os.path.join(path_our_eric, f'cluster_info_{iterations}_{k}_{alpha}_{delta_affine}_{delta_dist}_{min_samples}.p'), 'rb'))
-        df = pd.read_csv("sample_dataset/wages.csv")
-        df = df[["AGE", "EDUCATION", "EXPERIENCE", "WAGE"]]
-        df.columns = ["A", "YE", "YW", "W"]
-        print(df.head())
-        print("Samples:", len(df))
-        D = df.to_numpy(dtype=np.float64)
-        D = Scaler().fit_transform(D)
-        point_info, partitions = make_partitions(D, k=k)
-        models, clusters = cluster_partitions(D, partitions, point_info, delta_affine=delta_affine, delta_dist=delta_dist, min_samples=min_samples)
-        cluster_info = compute_cluster_list(clusters, D)
-        cluster_info = build_hierarchy(cluster_info, delta_affine=delta_affine, delta_dist=delta_dist)
-    except:
-        raise Exception("Loading the clustering failed")
-                
-    # loading the results of elki eric
-    lines = read_file(os.path.join(path_elki_eric, 'elki_eric_output.txt'))#f'elki_output_{iterations}_{k}_{alpha}_{delta_affine}_{delta_dist}_{min_samples}.txt'))
-    cluster_info_elki = parse_file(lines)
-    validate(cluster_info, cluster_info_elki)
-    
-load_and_validate("pickles", "")
     

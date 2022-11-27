@@ -3,8 +3,6 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import DBSCAN
 from scipy.spatial.distance import pdist, squareform
 
-np.seterr(all='raise')
-
 
 def get_neighbourhood_matrix(D, p, k=200):
     # compute matrix N_p of shape k x d
