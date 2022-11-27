@@ -37,23 +37,24 @@ def covariance_decomposition(X):
 def total_variance(eigenvalues, r):
     # calculates the total explained variance of using
     # the first r eigenvalues
-    return sum(eigenvalues[0:r]) / sum(eigenvalues)
+    return sum(eigenvalues[0:r+1]) / sum(eigenvalues)
 
 
-def correlation_dimensionality(D, p, k, alpha=0.85):
+def correlation_dimensionality(D, p, k, alpha=0.85, i=None):
     # finds lambda λ of the given point p
     # which is the smallest number of eigenvalues of the covariance matrix of N_p
     # explaining a portion of at least α of the total variance
 
     N_p = get_neighbourhood_matrix(D, p, k)
     eigen_values, eigen_vectors = covariance_decomposition(N_p)
-    l = 1
+
+    l = 0
     for i in range(D.shape[1]):
-        if total_variance(eigen_values, i  +  1) >= alpha:
-            l = i  +  1
+        if total_variance(eigen_values, i) >= alpha:
+            l = i
             break
 
-    return l, eigen_values, eigen_vectors
+    return l+1, eigen_values, eigen_vectors
 
 
 def make_partitions(D, k, alpha=.85):
@@ -73,7 +74,7 @@ def make_partitions(D, k, alpha=.85):
 
     # for every point, compute necessary values and store them
     for i, p in enumerate(D):
-        l, e_list, v_list = correlation_dimensionality(D, p, k, alpha)
+        l, e_list, v_list = correlation_dimensionality(D, p, k, alpha, i)
         # CHANGE since 2 equal points have the same e and v list, p can be used as key
         # CHANGE encode dimensionality in nested index -> saves memory in dbscan alg.
         # caclulate V * E^ * V.T since this value gets used a lot
@@ -114,7 +115,8 @@ def corr_distance(p, q, V_p, VEV_q, delta_dist, delta_affine):
     if is_approximate_linear_dependant(V_p, VEV_q, delta_affine) \
             and affine_distance(p, q, VEV_q) < delta_dist:
         return 0
-    else: return 1
+    else:
+        return 1
 
 
 def symmetric_correlation_distance(
@@ -128,15 +130,11 @@ def symmetric_correlation_distance(
         l_y = l_x
         point_info_ly = point_info_lx
 
-    try:
-        # get point info data by hashing point
-        x_info = point_info_lx[x.data.tobytes()]
-        y_info = point_info_ly[y.data.tobytes()]
-    except:
-        print("Error")
-        print(x)
-        print(x.data.tobytes())
-        raise ValueError
+
+    # get point info data by hashing point
+    x_info = point_info_lx[x.data.tobytes()]
+    y_info = point_info_ly[y.data.tobytes()]
+
 
     # retrieve values to compute similarity
     V_x = x_info['V']
@@ -155,6 +153,8 @@ def cluster_partitions(
     # initialize output structures
     models = [None for _ in partitions]  # maybe useful later?
     clusters = {i: [] for i in partitions}
+    # initialize noise
+    clusters[D.shape[1]].append([])
 
     for l, p in partitions.items():
         # check if partition contains indices
@@ -179,30 +179,26 @@ def cluster_partitions(
             # eps is the closest value to zero,
             # since we have a binary similarity function
             model = DBSCAN(
-                eps=0.0000001,
+                eps=0.0000000001,
                 min_samples=min_samples,
                 metric='precomputed',
             ).fit(X)
 
-            models[l] = model
+            # models[l] = model
 
             # get indices from model
             label = 0
             # iterate labels
-            while True:
-                # get indices of partition where
-                # points are clustered the current label
-                cluster = np.asarray((model.labels_ == label).nonzero())
-                if cluster.size != 0:
-                    clusters[l].append(cluster)
-                    label += 1
+            for label in np.unique(model.labels_):
+                # get points of the current cluster
+                if label == -1 or l == D.shape[1]:
+                    # put points marked as noise by ERiC or DBSCAN in the last (noise) partition
+                    clusters[D.shape[1]][0].extend(np.asarray(p)[model.labels_ == label])
                 else:
-                    # stop if model has no more labels
-                    break
+                    clusters[l].append(np.asarray(p)[model.labels_ == label])
 
     return models, clusters
 
-
 def compute_cluster_list(clusters, D):
     # nested dictionary: 1.key: partition, 2.key: cluster
     cluster_info = {}
@@ -210,118 +206,16 @@ def compute_cluster_list(clusters, D):
 
     # create cluster info dictionary for every cluster in all partitions
     for p in list(clusters.keys()):
-        print("partition: ", p)
 
         if len(clusters[p]) > 0:
-            for c in range(1, len(clusters[p])+1):
+            for c in range(1, len(clusters[p]) + 1):
                 cluster_info[c_i] = {}
                 cluster_info[c_i]['lambda'] = p
-                cluster_info[c_i]['points'] = clusters[p][c-1]
-                cluster_info[c_i]['index'] = c-1
+                cluster_info[c_i]['points'] = clusters[p][c - 1]
+                cluster_info[c_i]['index'] = c - 1
 
                 # compute centroid of cluster c in partition p
-                N_cluster = np.squeeze(D[clusters[p][c-1]])
-                cluster_info[c_i]['centroid'] = np.mean(N_cluster, axis=0)
-
-                print("---cluster: ", c, " size:", N_cluster.shape[0])
-
-                # compute matrices based on strong and weak eigenvalues
-                e_list, v_list = covariance_decomposition(N_cluster)
-                E_hat = np.eye(N_cluster.shape[1])
-                E_hat[0:p, 0:p] = 0
-                cluster_info[c_i]['V'] = v_list
-                cluster_info[c_i]['VEV'] = v_list @ E_hat @ v_list.T
-
-                # initialize parents
-                cluster_info[c_i]['parents'] = []
-
-                c_i += 1
-
-    return cluster_info
-
-
-def is_parent(j, i, cluster_list):
-    # checks if c_j is a (grand)parent of c_i
-    c_i_parents = cluster_list[i]['parents']
-
-    if len(c_i_parents) == 0:
-        return False
-    if j in c_i_parents:
-        return True
-    else:
-        for p in c_i_parents:
-            if is_parent(j, p, cluster_list):
-                return True
-        return False
-
-
-def build_hierarchy(cluster_list, delta_affine, delta_dist):
-    l_max = max([cluster_list[c]['lambda'] for c in cluster_list])
-    n = len(cluster_list)
-
-    for i in range(1, n+1):
-        c_i = cluster_list[i]
-        l_ci = c_i['lambda']
-        for j in range(1, n+1):
-            c_j = cluster_list[j]
-            l_cj = c_j['lambda']
-
-            if l_ci < l_cj:
-                if l_cj == l_max and len(c_i['parents']) == 0:
-                    c_i['parents'].append(j)
-                else:
-                    cent_i = c_i['centroid']
-                    cent_j = c_j['centroid']
-                    V_i = c_i['V']
-                    VEV_j = c_i['VEV']
-
-                    if corr_distance(cent_i, cent_j, V_i, VEV_j, delta_dist, delta_affine) == 0\
-                        and (len(c_i['parents']) == 0 or not is_parent(j, i, cluster_list)):
-                        c_i['parents'].append(j)
-
-    return cluster_list
-
-
-"""" 
-test
-
-cluster_test = {}
-cluster_test[1] = {}
-cluster_test[1]['parents'] = [4, 7]
-cluster_test[2] = {}
-cluster_test[2]['parents'] = [4]
-cluster_test[3] = {}
-cluster_test[3]['parents'] = []
-cluster_test[4] = {}
-cluster_test[4]['parents'] = [5, 6]
-cluster_test[5] = {}
-cluster_test[5]['parents'] = [3]
-cluster_test[6] = {}
-cluster_test[6]['parents'] = [3]
-cluster_test[7] = {}
-cluster_test[7]['parents'] = [5]
-print(is_parent(1, 3, cluster_test))
-
-
-
-
-def compute_cluster_list(clusters, D):
-    # nested dictionary: 1.key: partition, 2.key: cluster
-    cluster_info = {}
-    c_i = 1
-
-    # create cluster info dictionary for every cluster in all partitions
-    for p in list(clusters.keys()):
-        # print("partition: ", p)
-
-        if len(clusters[p]) > 0:
-            for c in range(1, len(clusters[p])+1):
-                # print("---cluster: ", c, "->", c_i)
-                cluster_info[c_i] = {}
-                cluster_info[c_i]['lambda'] = p
-
-                # compute centroid of cluster c in partition p
-                N_cluster = np.squeeze(D[clusters[p][c-1]])
+                N_cluster = np.squeeze(D[clusters[p][c - 1]])
                 cluster_info[c_i]['centroid'] = np.mean(N_cluster, axis=0)
 
                 # compute matrices based on strong and weak eigenvalues
@@ -358,10 +252,10 @@ def build_hierarchy(cluster_list, delta_affine, delta_dist):
     l_max = max([cluster_list[c]['lambda'] for c in cluster_list])
     n = len(cluster_list)
 
-    for i in range(1, n+1):
+    for i in range(1, n + 1):
         c_i = cluster_list[i]
         l_ci = c_i['lambda']
-        for j in range(1, n+1):
+        for j in range(1, n + 1):
             c_j = cluster_list[j]
             l_cj = c_j['lambda']
 
@@ -374,29 +268,8 @@ def build_hierarchy(cluster_list, delta_affine, delta_dist):
                     V_i = c_i['V']
                     VEV_j = c_i['VEV']
 
-                    if corr_distance(cent_i, cent_j, V_i, VEV_j, delta_dist, delta_affine) == 0\
-                        and (len(c_i['parents']) == 0 or not is_parent(j, i, cluster_list)):
+                    if corr_distance(cent_i, cent_j, V_i, VEV_j, delta_dist, delta_affine) == 0 \
+                            and (len(c_i['parents']) == 0 or not is_parent(j, i, cluster_list)):
                         c_i['parents'].append(j)
 
     return cluster_list
-
-test
-
-cluster_test = {}
-cluster_test[1] = {}
-cluster_test[1]['parents'] = [4, 7]
-cluster_test[2] = {}
-cluster_test[2]['parents'] = [4]
-cluster_test[3] = {}
-cluster_test[3]['parents'] = []
-cluster_test[4] = {}
-cluster_test[4]['parents'] = [5, 6]
-cluster_test[5] = {}
-cluster_test[5]['parents'] = [3]
-cluster_test[6] = {}
-cluster_test[6]['parents'] = [3]
-cluster_test[7] = {}
-cluster_test[7]['parents'] = [5]
-print(is_parent(1, 3, cluster_test))
-"""
-

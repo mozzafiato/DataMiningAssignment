@@ -24,6 +24,7 @@ def get_index(cluster_info, l, c_i):
 def parse_file(lines, verbose=0):
     cluster_info = {}
 
+    d = 0
     for i, cluster in enumerate(lines.split("# Cluster:")[1:]):
         #print("Cluster", i+1)
         if i+1 not in cluster_info:
@@ -33,8 +34,7 @@ def parse_file(lines, verbose=0):
         if verbose:
             print(name)
         if name == "noise":
-            # not sure ??
-            l = 0
+            l = 0  # Note: this is later corrected to = d
             c_i = 0
 
             cluster_info[i + 1]['lambda'] = int(l)
@@ -49,7 +49,14 @@ def parse_file(lines, verbose=0):
 
         IDs_list = re.findall(r"ID=(\d+)", cluster)
         IDs = np.squeeze(np.array(IDs_list, dtype="i").reshape(-1, 1))
-        cluster_info[i + 1]['points'] = IDs
+        cluster_info[i + 1]['points'] = np.subtract(IDs, 1)
+
+        points = cluster.split("ID=")
+        if d == 0 and len(points) > 0:
+            d = len(points[1].split()) - 1
+
+    noise_index = get_index(cluster_info, 0, 0)
+    cluster_info[noise_index]['lambda'] = d
 
     for i, cluster in enumerate(lines.split("# Cluster:")[1:]):
 
@@ -99,7 +106,7 @@ def draw_graph(cluster_info):
         if cluster_info[i]['lambda'] == 0:
             colors.append("black")
         else:
-            class_1 = np.count_nonzero(cluster_info[i]['points'] > 500)
+            class_1 = np.count_nonzero(cluster_info[i]['points'] >= 500)
             class_2 = len(cluster_info[i]['points']) - class_1
             if class_1 > class_2:
                 colors.append('red')
