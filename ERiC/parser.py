@@ -26,12 +26,12 @@ def parse_file(lines):
     cluster_info = {}
 
     for i, cluster in enumerate(lines.split("# Cluster:")[1:]):
-        #print("Cluster", i+1)
+        ##print("Cluster", i+1)
         if i+1 not in cluster_info:
             cluster_info[i+1] = {}
 
         name = re.findall(r"\[(.*?)]", cluster)[0]
-        print(name)
+        #print(name)
         if name == "noise":
             # not sure ??
             l = 0
@@ -60,13 +60,13 @@ def parse_file(lines):
 
             for child in children_list:
                 inds = child.replace("[", "").replace("]", "").split("_")
-                #print(inds)
+                ##print(inds)
                 child_index = get_index(cluster_info, int(inds[0]), int(inds[1]))
-                if child_index == -1:
-                    print("****")
+                # if child_index == -1:
+                    #print("****")
                 if 'parents' not in cluster_info[child_index]:
                     cluster_info[child_index]['parents'] = []
-                #print("Adding parent:", i+1, " to", child_index)
+                ##print("Adding parent:", i+1, " to", child_index)
                 cluster_info[child_index]['parents'].append(i+1)
 
     return cluster_info
@@ -92,16 +92,18 @@ def draw_graph(cluster_info, ax_ij):
     d = max([cluster_info[c]['lambda'] for c in cluster_info])
 
     # add nodes:
-    print("Keys:", len(list(cluster_info.keys())))
+    #print("Keys:", len(list(cluster_info.keys())))
     added = 0
     for i in cluster_info.keys():
+
+        cluster_info[i]['points'] = np.asarray(cluster_info[i]['points'])
 
         name = str(cluster_info[i]['lambda']) + "_" + str(cluster_info[i]["index"])
 
         added += 1
-        print(added)
+        #print(added)
         pos[name] = [cluster_info[i]['lambda'], cluster_info[i]["index"]]
-        print("Node:", name, " level:", cluster_info[i]['lambda'])
+        #print("Node:", name, " level:", cluster_info[i]['lambda'])
         if cluster_info[i]['lambda'] == 0:
             attr[name] = 0
             G.add_node(name, level=0)
@@ -119,11 +121,11 @@ def draw_graph(cluster_info, ax_ij):
     for i in cluster_info.keys():
         name = str(cluster_info[i]['lambda']) + "_" + str(cluster_info[i]["index"])
 
-        #print("Node:", name)
+        ##print("Node:", name)
         for j in cluster_info[i]['parents']:
             name_parent = str(cluster_info[j]['lambda']) + "_" + str(cluster_info[j]["index"])
             G.add_edge(name_parent, name)
-            #print("Adding:", name_parent, name)
+            ##print("Adding:", name_parent, name)
 
     """
     # test
@@ -147,16 +149,16 @@ def draw_graph(cluster_info, ax_ij):
 
     true_levels = nx.get_node_attributes(G, 'level')
     reposition = {node_id: np.array([pos[node_id][0], true_levels[node_id]]) for node_id in true_levels}
-    print(G.number_of_nodes())
-    print(G.number_of_edges())
-    print(added)
+    #print(G.number_of_nodes())
+    #print(G.number_of_edges())
+    #print(added)
 
     n = np.arange(0, lambda_max+1)
 
     # for i in n:
     #     plt.axhline(y=i, color='gray', linewidth=0.5)
 
-    nx.draw_networkx(G, reposition, node_size=60, arrowsize=1, width=0.05, node_color=colors, with_labels=False)
+    nx.draw_networkx(G, reposition, node_size=60, arrowsize=1, width=0.05, node_color=colors, with_labels=False, ax=ax_ij)
 
     # plt.show()
 
