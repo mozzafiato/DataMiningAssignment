@@ -34,7 +34,7 @@ def parse_file(lines, verbose=0):
 
     d = 0
     for i, cluster in enumerate(lines.split("# Cluster:")[1:]):
-        #print("Cluster", i+1)
+
         if i+1 not in cluster_info:
             cluster_info[i+1] = {}
 
@@ -58,6 +58,8 @@ def parse_file(lines, verbose=0):
         IDs_list = re.findall(r"ID=(\d+)", cluster)
         IDs = np.squeeze(np.array(IDs_list, dtype="i").reshape(-1, 1))
         cluster_info[i + 1]['points'] = np.subtract(IDs, 1)
+
+        cluster_info[i + 1]['parents'] = []
 
         points = cluster.split("ID=")
         if d == 0 and len(points) > 0:
@@ -100,13 +102,10 @@ def draw_graph(cluster_info):
         name = str(cluster_info[i]['lambda']) + "_" + str(cluster_info[i]["index"])
 
         added += 1
-        print(added)
         pos[name] = [cluster_info[i]['lambda'], cluster_info[i]["index"]]
-        print("Node:", name, " level:", cluster_info[i]['lambda'])
-        attr[name] = d - cluster_info[i]['lambda']+1
-        G.add_node(name, level=(d - cluster_info[i]['lambda'] + 1))
+        attr[name] = cluster_info[i]['lambda']
+        G.add_node(name, level=cluster_info[i]['lambda'])
 
-        print(cluster_info[i]['lambda'])
         if cluster_info[i]['lambda'] == 1:
             colors.append("black")
         else:

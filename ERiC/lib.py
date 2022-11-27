@@ -78,8 +78,6 @@ def make_partitions(D, k, alpha=.85):
         # caclulate V * E^ * V.T since this value gets used a lot
         VEV = v_list @ E_hats[l - 1] @ v_list.T
         point_info[l][p.data.tobytes()] = {
-            # 'lambda': l,  # integer
-            # 'E': e_list,  # 1D array
             'V': v_list,  # 2D array
             'VEV': VEV  # 2D array
         }
@@ -93,8 +91,8 @@ def make_partitions(D, k, alpha=.85):
 def is_approximate_linear_dependant(V_p, VEV_q, delta_affine):
     # iterate columns
     for i, v_p in enumerate(V_p.T):
-        p = max(0, v_p @ VEV_q @ v_p.T)
-        deltas_i = np.sqrt(p)
+        p = v_p @ VEV_q @ v_p.T
+        deltas_i = np.sqrt(np.abs(p))
         if deltas_i > delta_affine: return False
 
     return True
@@ -128,11 +126,9 @@ def symmetric_correlation_distance(
         l_y = l_x
         point_info_ly = point_info_lx
 
-
     # get point info data by hashing point
     x_info = point_info_lx[x.data.tobytes()]
     y_info = point_info_ly[y.data.tobytes()]
-
 
     # retrieve values to compute similarity
     V_x = x_info['V']
@@ -197,6 +193,7 @@ def cluster_partitions(
 
     return models, clusters
 
+
 def compute_cluster_list(clusters, D):
     # nested dictionary: 1.key: partition, 2.key: cluster
     cluster_info = {}
@@ -220,7 +217,7 @@ def compute_cluster_list(clusters, D):
                 e_list, v_list = covariance_decomposition(N_cluster)
                 E_hat = np.eye(N_cluster.shape[1])
                 E_hat[0:p, 0:p] = 0
-                cluster_info[c_i]['V'] = v_list
+                cluster_info[c_i]['V'] = np.real(v_list)
                 cluster_info[c_i]['VEV'] = v_list @ E_hat @ v_list.T
 
                 # initialize parents
@@ -233,27 +230,21 @@ def compute_cluster_list(clusters, D):
 
 def is_parent(j, i, cluster_list):
     # checks if c_j is a (grand)parent of c_i
-    c_i_parents = cluster_list[i]['parents']
-
-    if len(c_i_parents) == 0:
-        return False
-    if j in c_i_parents:
-        return True
-    else:
-        for p in c_i_parents:
-            if is_parent(j, p, cluster_list):
+    for c in cluster_list.keys():
+        if c in cluster_list[i]["parents"]:
+            if j in cluster_list[c]["parents"]:
                 return True
-        return False
+    return False
 
 
-def build_hierarchy(cluster_list, delta_affine, delta_dist):
-    l_max = max([cluster_list[c]['lambda'] for c in cluster_list])
-    n = len(cluster_list)
+def build_hierarchy(cluster_list, delta_affine, delta_dist, d):
 
-    for i in range(1, n + 1):
+    l_max = d
+
+    for i in cluster_list.keys():
         c_i = cluster_list[i]
         l_ci = c_i['lambda']
-        for j in range(1, n + 1):
+        for j in cluster_list.keys():
             c_j = cluster_list[j]
             l_cj = c_j['lambda']
 
@@ -264,7 +255,7 @@ def build_hierarchy(cluster_list, delta_affine, delta_dist):
                     cent_i = c_i['centroid']
                     cent_j = c_j['centroid']
                     V_i = c_i['V']
-                    VEV_j = c_i['VEV']
+                    VEV_j = c_j['VEV']
 
                     if corr_distance(cent_i, cent_j, V_i, VEV_j, delta_dist, delta_affine) == 0 \
                             and (len(c_i['parents']) == 0 or not is_parent(j, i, cluster_list)):
