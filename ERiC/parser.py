@@ -78,7 +78,12 @@ def colorFader(mix=0, c1="blue", c2="red"): #fade (linear interpolate) from colo
     return mpl.colors.to_hex((1-mix)*c1 + mix*c2)
 
 
-def draw_graph(cluster_info):
+def draw_graph(cluster_info, ax_ij):
+
+    # hardcoded
+    for i, c in cluster_info.items():
+        if c["lambda"] == 1000:
+            cluster_info[i]["lambda"] = 35
 
     G = nx.DiGraph()
     pos = {}
@@ -148,12 +153,12 @@ def draw_graph(cluster_info):
 
     n = np.arange(0, lambda_max+1)
 
-    for i in n:
-        plt.axhline(y=i, color='gray', linewidth=0.5)
+    # for i in n:
+    #     plt.axhline(y=i, color='gray', linewidth=0.5)
 
     nx.draw_networkx(G, reposition, node_size=60, arrowsize=1, width=0.05, node_color=colors, with_labels=False)
 
-    plt.show()
+    # plt.show()
 
 # Example
 """text = read_file('elki/elki_output.txt')
