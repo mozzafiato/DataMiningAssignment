@@ -37,3 +37,11 @@ Install pytorch geometric: https://pytorch-geometric.readthedocs.io/en/latest/no
 - **elki_eric.py** runs the ELKI implementation of ERiC and saves in a text file.
 - **elki_parser.py** parses the results of ELKI ERiC and contains a function for visualization.
 - **validation.py** compares two outputs of ERiC for validation.
+
+## How to reproduce our results
+Note: Both our implementation and the ELKI implementation might take a while to execute and produce large files
+1. run Run_ERiC.ipynb
+2. run hyperparameter_tuning.py
+3. run plot_trees.ipynb
+4. run ERiC_Validation.ipynb
+5. run EDA.ipynb and EDA_ERiC.ipynb
