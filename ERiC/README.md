@@ -1,5 +1,5 @@
 ### Team 3
-**Authors:** Kraljevska Melanija, Stolz Michaela, Vincent Jonathan, Zimmball Markus
+**Authors:** Kraljevska Melanija, Stolz Michaela, Vincent Jonathan, Zimmball Markus \
 This folder contains our implementation of the ERiC algorithm and its evaluation on the IMDB-BINARY dataset.
 
 ## Requirements
@@ -29,7 +29,8 @@ Install pytorch geometric: https://pytorch-geometric.readthedocs.io/en/latest/no
 - **kernel_computation.ipynb** computes the kernels and stores the results in pickle files.
 - **Run_ERiC.ipynb** runs ERiC on a given dataset and kernel and stores the result in pickle files.
 - **ERiC_Validation.ipynb** contains code for the validation of ERiC, comparing it with the ELKI implementation.
-- **plot_trees.ipynb** plots the cluster hierarchies for different combinations of hyperparameters.
+- **hyperparameter_tuning.py** runs ERiC for different hyperparameters and stores the results as pickle files.
+- **plot_trees.ipynb** reads the pickle files created by hyperparameter_tuning.py and plots the cluster hierarchies for different combinations of hyperparameters.
 
 ## Helper files:
 - **lib.py** contains the implementation of ERiC.
