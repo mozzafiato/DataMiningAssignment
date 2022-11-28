@@ -71,8 +71,6 @@ def validate(our_cluster_info, elki_cluster_info):
                 cluster_sizes_identical = False
 
 
-
-
     validated = equal_n_clusters and equal_lambda_amounts and cluster_sizes_identical
     print(f"\nValidation result: The outputs of the algorithms are{' ' if validated else ' not '}identical.") 
 
