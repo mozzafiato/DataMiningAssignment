@@ -1,3 +1,5 @@
+### Team 3
+**Authors:** Kraljevska Melanija, Stolz Michaela, Vincent Jonathan, Zimmball Markus
 This folder contains our implementation of the ERiC algorithm and its evaluation on the IMDB-BINARY dataset.
 
 ## Requirements
@@ -17,9 +19,20 @@ Install pytorch geometric: https://pytorch-geometric.readthedocs.io/en/latest/no
  ! pip install torch-geometric
 ```
 
-## Files
+## Reports of results: 
 - **EDA.ipynb** contains the exploratory data analysis with methods such as dimensionality reduction, clustering etc.
 - **EDA.html** containts the results of EDA.ipynb.
 - **EDA_ERiC.ipynb** visualizes and analyzes the clusterings obtained with ERiC.
 - **EDA_ERiC.html** containts the results of EDA_ERiC.ipynb.
-- **ERiC_validation.ipynb** contains code for the validation of ERiC, comparing it with the ELKI implementation.
+
+## Computation of results: 
+- **kernel_computation.ipynb** computes the kernels and stores the results in pickle files.
+- **Run_ERiC.ipynb** runs ERiC on a given dataset and kernel and stores the result in pickle files.
+- **ERiC_Validation.ipynb** contains code for the validation of ERiC, comparing it with the ELKI implementation.
+- **plot_trees.ipynb** plots the cluster hierarchies for different combinations of hyperparameters.
+
+## Helper files:
+- **lib.py** contains the implementation of ERiC.
+- **elki_eric.py** runs the ELKI implementation of ERiC and saves in a text file.
+- **elki_parser.py** parses the results of ELKI ERiC and contains a function for visualization.
+- **validation.py** compares two outputs of ERiC for validation.
