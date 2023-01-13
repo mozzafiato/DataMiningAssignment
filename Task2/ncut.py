@@ -17,7 +17,9 @@ def ncut_single_graph(graph, nodes1, nodes2):
                     (edge[0] in nodes1 and edge[1] in nodes2) or
                     (edge[1] in nodes1 and edge[0] in nodes2)]
 
-    weights = [graph.get_edge_data(edge[0], edge[1]) for edge in edges]
+    weights = [graph.get_edge_data(edge[0], edge[1])['weight'] for edge in edges]
+    
+    #print(weights)
     cut_size = sum(weights)
     
     # find edges connected to the first partition 
@@ -101,6 +103,10 @@ def k_ncut_multigraph(graph, node_lists):
                         
         assoc_i = len(edges) # assumes that all edges have a weight of 1
         
-        k_ncut += cut_i/assoc_i
+        
+        if assoc_i != 0:
+            cut_i /= assoc_i
+            
+        k_ncut += cut_i
         
     return k_ncut
