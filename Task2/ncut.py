@@ -87,7 +87,12 @@ def k_ncut_multigraph(graph, node_lists):
     k_ncut = 0
     
     for i, nodes in enumerate(node_lists):
-        other_nodes = np.concatenate(np.concatenate((node_lists[:i], node_lists[i+1:])))
+        # other_nodes = np.concatenate(np.concatenate((node_lists[:i], node_lists[i+1:])))
+        other_nodes = np.asarray([
+                n for sub_l in node_lists[:i] for n in sub_l
+            ] + [
+                n for sub_l in node_lists[i+1:] for n in sub_l
+            ])
         
         # find edges between the current subset and all other nodes
         edges = [edge for edge in graph.edges if
@@ -96,11 +101,13 @@ def k_ncut_multigraph(graph, node_lists):
                         
         cut_i = len(edges) # assumes that all edges have a weight of 1
         
-        # find edges connected to the current subset 
+        # # find edges connected to the current subset 
         edges = [edge for edge in graph.edges if
                         edge[0] in nodes] + [edge for edge in graph.edges if
                         edge[1] in nodes]
-                        
+        # edges = [edge for edge in graph.edges if
+        #                 edge[0] in nodes or edge[1] in nodes]
+
         assoc_i = len(edges) # assumes that all edges have a weight of 1
         
         
