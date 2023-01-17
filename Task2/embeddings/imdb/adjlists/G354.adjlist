@@ -1,0 +1,20 @@
+#C:\ProgramData\Anaconda3\lib\site-packages\ipykernel_launcher.py -f C:\Users\T470\AppData\Roaming\jupyter\runtime\kernel-dd79240f-8e32-4572-a8f3-3b5094da725e.json
+# GMT Tue Jan 17 20:41:28 2023
+# 
+0 2 3 5 6 7 14 15
+1 4 6 7 10 14
+2 3 5 6 7 14 15
+3 5 6 7 14 15
+4 6 7 10 11 13 14 16
+5 6 7 14 15
+6 7 8 9 10 11 12 13 14 15 16
+7 8 9 10 11 12 13 14 15 16
+8 9 11 12 13
+9 11 12 13
+10 14 16
+11 12 13
+12 13
+13
+14 15 16
+15
+16
