@@ -19,6 +19,7 @@ Then run the notebooks in the following order:
 - uses the embeddings created in the 'embeddings' folder.
 - uses the implementation of NCut from the ncut.py file.
 - clusters and analyses the data.
+- contains the bonus task 2g)
 
 3. IMDB Analysis
 (note: for the IMDB-MULTI dataset, one has to download it from https://www.dropbox.com/s/ntutrhk8nr3vveb/imdb.pkl?dl=0 and put it in the 'DMGI/data' folder if not already there)
